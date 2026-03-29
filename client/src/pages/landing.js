@@ -1,4 +1,4 @@
-import { searchStocks } from '../services/api.js';
+import { searchStocks, predictChart } from '../services/api.js';
 import { debounce } from '../utils/formatters.js';
 
 const POPULAR_STOCKS = [
@@ -58,9 +58,46 @@ export function renderLanding(container, navigateTo) {
         </div>
       </section>
 
-      <section class="popular-section fade-in-up">
-        <h2 class="section-title">Popular Stocks</h2>
-        <div class="popular-grid stagger" id="popular-grid"></div>
+        </div>
+      </section>
+
+      <section class="landing-prediction-section fade-in-up">
+        <div class="panel prediction-panel">
+          <div class="panel-header">
+            <span class="panel-title">🔮 Instant AI Chart Analysis</span>
+          </div>
+          <div class="panel-body">
+            <div class="prediction-container-flex">
+              <div class="prediction-upload-box">
+                <div class="upload-zone" id="upload-zone">
+                  <input type="file" accept="image/*" id="chart-upload">
+                  <div class="upload-zone-icon">📸</div>
+                  <div class="upload-zone-text">
+                    <strong>Upload Chart Screenshot</strong><br>
+                    Drop your TradingView or chart image here
+                  </div>
+                </div>
+                <div id="chart-preview" style="display:none; margin-top: 12px;">
+                  <img id="chart-preview-img" style="width:100%; border-radius: 8px; border: 1px solid var(--border-subtle);" />
+                  <button class="btn btn-primary" id="predict-btn" style="margin-top: 12px; width: 100%;">
+                    🔮 Analyze with AI
+                  </button>
+                </div>
+                <div id="prediction-loading" style="display:none;" class="page-loading">
+                  <div class="loading-spinner"></div>
+                  <div class="page-loading-text">Analyzing patterns...</div>
+                </div>
+              </div>
+              <div class="prediction-result-box">
+                <div class="prediction-result" id="prediction-result">
+                  <div class="prediction-placeholder">
+                    Analysis results will appear here after you upload and analyze a chart.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="features-section">
@@ -182,6 +219,120 @@ export function renderLanding(container, navigateTo) {
     navigateTo('/');
   });
 
+  // Setup Chart Prediction
+  setupChartUpload();
+
   // Focus search
   setTimeout(() => searchInput.focus(), 300);
+}
+
+function setupChartUpload() {
+  const uploadInput = document.getElementById('chart-upload');
+  const preview = document.getElementById('chart-preview');
+  const previewImg = document.getElementById('chart-preview-img');
+  const predictBtn = document.getElementById('predict-btn');
+  const predictionLoading = document.getElementById('prediction-loading');
+  const predictionResult = document.getElementById('prediction-result');
+
+  let base64Image = null;
+
+  uploadInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      base64Image = ev.target.result;
+      previewImg.src = base64Image;
+      preview.style.display = 'block';
+      document.getElementById('upload-zone').style.display = 'none';
+      predictionResult.classList.remove('active');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  predictBtn?.addEventListener('click', async () => {
+    if (!base64Image) return;
+
+    predictBtn.style.display = 'none';
+    predictionLoading.style.display = 'flex';
+    predictionResult.innerHTML = '';
+
+    try {
+      const prediction = await predictChart(base64Image, 'General Indian Stock Chart Analysis');
+      renderPrediction(prediction);
+    } catch (err) {
+      predictionResult.innerHTML = `<div style="color:var(--bearish); padding:12px;">${err.message}</div>`;
+      predictionResult.classList.add('active');
+    } finally {
+      predictionLoading.style.display = 'none';
+      predictBtn.style.display = 'block';
+    }
+  });
+}
+
+function renderPrediction(prediction) {
+  const result = document.getElementById('prediction-result');
+  const direction = (prediction.prediction || '').toLowerCase();
+  const arrowMap = { bullish: '📈', bearish: '📉', neutral: '➡️' };
+  const arrow = arrowMap[direction] || '🔄';
+
+  result.innerHTML = `
+    <div class="prediction-direction ${direction}">
+      <span class="prediction-arrow">${arrow}</span>
+      <div>
+        <div class="prediction-label">${prediction.prediction || 'N/A'}</div>
+        <div style="font-size:12px; color:var(--text-secondary);">${prediction.pattern || ''}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <div style="display:flex; justify-content: space-between; font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+        <span>Confidence</span>
+        <span style="color:var(--text-primary); font-weight:600;">${prediction.confidence || 0}%</span>
+      </div>
+      <div class="confidence-bar">
+        <div class="confidence-fill" style="width: ${prediction.confidence || 0}%"></div>
+      </div>
+    </div>
+
+    <p style="font-size:13px; color:var(--text-secondary); line-height:1.7; margin-bottom:14px;">
+      ${prediction.summary || ''}
+    </p>
+
+    <div class="prediction-details">
+      <div class="prediction-detail-item">
+        <div class="prediction-detail-label">Trend</div>
+        <div class="prediction-detail-value">${prediction.trend || 'N/A'}</div>
+      </div>
+      <div class="prediction-detail-item">
+        <div class="prediction-detail-label">Timeframe</div>
+        <div class="prediction-detail-value">${prediction.timeframe || 'N/A'}</div>
+      </div>
+      <div class="prediction-detail-item">
+        <div class="prediction-detail-label">Support</div>
+        <div class="prediction-detail-value">${(prediction.supportLevels || []).join(', ') || 'N/A'}</div>
+      </div>
+      <div class="prediction-detail-item">
+        <div class="prediction-detail-label">Resistance</div>
+        <div class="prediction-detail-value">${(prediction.resistanceLevels || []).join(', ') || 'N/A'}</div>
+      </div>
+    </div>
+
+    ${prediction.keyObservations?.length ? `
+      <div style="margin-top: 14px;">
+        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Key Observations</div>
+        <ul class="analysis-points">
+          ${prediction.keyObservations.map(o => `<li>${o}</li>`).join('')}
+        </ul>
+      </div>
+    ` : ''}
+
+    <div style="margin-top: 12px; padding: 10px 12px; background:rgba(255,255,255,0.02); border-radius:6px;">
+      <div class="prediction-detail-label">Risk/Reward</div>
+      <div style="font-size:13px; color:var(--text-primary); margin-top:4px;">${prediction.riskReward || 'N/A'}</div>
+    </div>
+  `;
+
+  result.classList.add('active');
 }
