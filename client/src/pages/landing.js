@@ -58,7 +58,9 @@ export function renderLanding(container, navigateTo) {
         </div>
       </section>
 
-        </div>
+      <section class="popular-section fade-in-up">
+        <h2 class="section-title">Popular Stocks</h2>
+        <div class="popular-grid stagger" id="popular-grid"></div>
       </section>
 
       <section class="landing-prediction-section fade-in-up">
