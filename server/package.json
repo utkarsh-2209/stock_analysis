@@ -1,0 +1,16 @@
+{
+  "name": "stock-analyzer-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "rss-parser": "^3.13.0",
+    "yahoo-finance2": "^3.14.0"
+  }
+}
