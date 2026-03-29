@@ -4,6 +4,12 @@ import YahooFinance from 'yahoo-finance2';
 const router = express.Router();
 const yahooFinance = new YahooFinance();
 
+// In-memory caches
+const stockCache = {};
+const historyCache = {};
+const STOCK_CACHE_TTL = 5 * 60 * 1000;   // 5 minutes
+const HISTORY_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
 // Scrape Google Finance for stock data (reliable, no auth needed)
 async function fetchGoogleFinance(symbol) {
   const url = `https://www.google.com/finance/quote/${symbol}:NSE`;
@@ -229,10 +235,18 @@ router.get('/:symbol/history', async (req, res) => {
   try {
     const symbol = req.params.symbol.toUpperCase().replace('.NS', '').replace('.BO', '');
     const { range = '1mo' } = req.query;
-    
+    const cacheKey = `${symbol}_${range}`;
+
+    // Serve from cache if fresh
+    const cached = historyCache[cacheKey];
+    if (cached && (Date.now() - cached.ts < HISTORY_CACHE_TTL)) {
+      res.set('Cache-Control', 'public, max-age=120');
+      return res.json(cached.data);
+    }
+
     // Determine interval based on range
     let interval = '1d';
-    if (range === '1d' || range === '5d') interval = '15m'; // intraday for short ranges
+    if (range === '1d' || range === '5d') interval = '15m';
     if (range === '1mo' || range === '6mo' || range === 'ytd' || range === '1y') interval = '1d';
     if (range === '5y') interval = '1wk';
 
@@ -258,12 +272,16 @@ router.get('/:symbol/history', async (req, res) => {
       close: closes[i]
     })).filter(h => h.close !== null);
 
-    res.json({
+    const payload = {
       symbol: meta.symbol,
       regularMarketPrice: meta.regularMarketPrice,
       previousClose: meta.chartPreviousClose || meta.previousClose,
       history
-    });
+    };
+
+    historyCache[cacheKey] = { ts: Date.now(), data: payload };
+    res.set('Cache-Control', 'public, max-age=120');
+    res.json(payload);
   } catch (error) {
     console.error('History API error:', error.message);
     res.status(500).json({ error: 'Failed to fetch history: ' + error.message });
@@ -274,13 +292,19 @@ router.get('/:symbol', async (req, res) => {
   try {
     const symbol = req.params.symbol.toUpperCase().replace('.NS', '').replace('.BO', '');
 
+    // Serve from cache if fresh
+    const cached = stockCache[symbol];
+    if (cached && (Date.now() - cached.ts < STOCK_CACHE_TTL)) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.json(cached.data);
+    }
+
     const data = await getStockData(symbol);
 
     if (!data || !data.currentPrice) {
       return res.status(404).json({ error: `Could not fetch data for ${symbol}. Please check the symbol and try again.` });
     }
 
-    // Compute scores based on available data
     const qualityScore = computeQualityScore(data);
     const valuationScore = computeValuationScore(data);
     const financialHealthScore = computeFinancialHealthScore(data);
@@ -344,6 +368,8 @@ router.get('/:symbol', async (req, res) => {
       cashflows: []
     };
 
+    stockCache[symbol] = { ts: Date.now(), data: stockData };
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(stockData);
   } catch (error) {
     console.error('Stock data error:', error.message);
