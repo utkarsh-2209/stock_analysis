@@ -90,3 +90,8 @@ export async function testApiKey(apiKey) {
   });
   return handleResponse(res);
 }
+
+export async function fetchBenchmarks() {
+  const res = await fetch(`${API_BASE}/stock/benchmarks`);
+  return handleResponse(res);
+}

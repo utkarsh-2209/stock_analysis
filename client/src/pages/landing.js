@@ -1,5 +1,5 @@
-import { searchStocks, predictChart } from '../services/api.js';
-import { debounce } from '../utils/formatters.js';
+import { searchStocks, predictChart, fetchBenchmarks } from '../services/api.js';
+import { debounce, formatCurrency } from '../utils/formatters.js';
 
 const POPULAR_STOCKS = [
   { symbol: 'RELIANCE', name: 'Reliance Industries' },
@@ -224,8 +224,90 @@ export function renderLanding(container, navigateTo) {
   // Setup Chart Prediction
   setupChartUpload();
 
+  // Load benchmarks
+  loadBenchmarks();
+
   // Focus search
   setTimeout(() => searchInput.focus(), 300);
+}
+
+async function loadBenchmarks() {
+  const container = document.getElementById('prediction-result');
+  if (!container) return;
+
+  try {
+    const data = await fetchBenchmarks();
+    renderMarketOverview(container, data);
+  } catch (err) {
+    console.error('Failed to load benchmarks:', err);
+    renderInitialAIInfo(container);
+  }
+}
+
+function renderMarketOverview(container, benchmarks) {
+  const nifty = benchmarks.nifty;
+  const sensex = benchmarks.sensex;
+
+  const niftyClass = nifty.change >= 0 ? 'bullish' : 'bearish';
+  const sensexClass = sensex.change >= 0 ? 'bullish' : 'bearish';
+  const niftySign = nifty.change >= 0 ? '+' : '';
+  const sensexSign = sensex.change >= 0 ? '+' : '';
+
+  container.innerHTML = `
+    <div class="market-overview-container">
+      <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:16px;">
+        Market Snapshot
+      </div>
+      
+      <div class="benchmark-grid">
+        <div class="benchmark-card ${niftyClass}">
+          <div class="benchmark-name">NIFTY 50</div>
+          <div class="benchmark-price">${nifty.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+          <div class="benchmark-change">
+            ${niftySign}${nifty.change.toFixed(2)} (${niftySign}${nifty.changePercent.toFixed(2)}%)
+          </div>
+        </div>
+        
+        <div class="benchmark-card ${sensexClass}">
+          <div class="benchmark-name">SENSEX</div>
+          <div class="benchmark-price">${sensex.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+          <div class="benchmark-change">
+            ${sensexSign}${sensex.change.toFixed(2)} (${sensexSign}${sensex.changePercent.toFixed(2)}%)
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-capabilities-box">
+        <div class="capability-title">🤖 What Gemini AI Detects</div>
+        <ul class="capability-list">
+          <li><span>📈</span> <strong>Trend Analysis:</strong> Identifies Bullish, Bearish, or Sideways movements.</li>
+          <li><span>🎯</span> <strong>Patterns:</strong> Detects Cup & Handle, Head & Shoulders, Flags, etc.</li>
+          <li><span>🛡️</span> <strong>Levels:</strong> Pinpoints key Support and Resistance zones.</li>
+          <li><span>⚖️</span> <strong>Risk/Reward:</strong> Assesses entries based on current price action.</li>
+        </ul>
+      </div>
+
+      <div class="hint-text">
+        Upload a chart screenshot on the left to start AI analysis.
+      </div>
+    </div>
+  `;
+}
+
+function renderInitialAIInfo(container) {
+  container.innerHTML = `
+    <div class="ai-capabilities-box" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+      <div class="capability-title">🤖 AI Chart Intelligence</div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+        Upload any candlestick chart to get deep insights using Google Gemini AI.
+      </p>
+      <ul class="capability-list">
+        <li><span>📈</span> Pattern Recognition</li>
+        <li><span>🛡️</span> Support/Resistance Detection</li>
+        <li><span>🎯</span> Price Target Predictions</li>
+      </ul>
+    </div>
+  `;
 }
 
 function setupChartUpload() {

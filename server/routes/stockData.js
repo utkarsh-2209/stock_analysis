@@ -231,6 +231,45 @@ async function getStockData(symbol) {
   return merged;
 }
 
+router.get('/benchmarks', async (req, res) => {
+  try {
+    const cacheKey = 'market_benchmarks';
+    const cached = stockCache[cacheKey];
+    if (cached && (Date.now() - cached.ts < STOCK_CACHE_TTL)) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.json(cached.data);
+    }
+
+    // Fetch Nifty 50 (^NSEI) and Sensex (^BSESN)
+    const [nifty, sensex] = await Promise.all([
+      yahooFinance.quote('^NSEI'),
+      yahooFinance.quote('^BSESN')
+    ]);
+
+    const data = {
+      nifty: {
+        price: nifty.regularMarketPrice,
+        change: nifty.regularMarketChange,
+        changePercent: nifty.regularMarketChangePercent,
+        name: 'Nifty 50'
+      },
+      sensex: {
+        price: sensex.regularMarketPrice,
+        change: sensex.regularMarketChange,
+        changePercent: sensex.regularMarketChangePercent,
+        name: 'Sensex'
+      }
+    };
+
+    stockCache[cacheKey] = { ts: Date.now(), data };
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json(data);
+  } catch (error) {
+    console.error('Benchmarks API error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch market benchmarks' });
+  }
+});
+
 router.get('/:symbol/history', async (req, res) => {
   try {
     const symbol = req.params.symbol.toUpperCase().replace('.NS', '').replace('.BO', '');
