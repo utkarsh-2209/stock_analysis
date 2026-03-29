@@ -750,6 +750,56 @@ a:hover {
   cursor: pointer;
 }
 
+/* ── Landing Prediction Section Styles ── */
+.landing-prediction-section {
+  width: 100%;
+  max-width: 1100px;
+  padding: 0 24px 60px;
+}
+
+.prediction-container-flex {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.prediction-upload-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.prediction-result-box {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  min-height: 380px;
+  position: relative;
+}
+
+.prediction-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 40px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .prediction-container-flex {
+    flex-direction: column;
+  }
+  .prediction-result-box {
+    min-height: auto;
+  }
+}
+
 .prediction-result {
   display: none;
 }
