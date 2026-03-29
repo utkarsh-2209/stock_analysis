@@ -278,7 +278,7 @@ function renderMarketOverview(container, benchmarks) {
       </div>
 
       <div class="ai-capabilities-box">
-        <div class="capability-title">🤖 What Gemini AI Detects</div>
+        <div class="capability-title">🚀 Powered by Gemini 2.5 Flash</div>
         <ul class="capability-list">
           <li><span>📈</span> <strong>Trend Analysis:</strong> Identifies Bullish, Bearish, or Sideways movements.</li>
           <li><span>🎯</span> <strong>Patterns:</strong> Detects Cup & Handle, Head & Shoulders, Flags, etc.</li>
@@ -297,9 +297,9 @@ function renderMarketOverview(container, benchmarks) {
 function renderInitialAIInfo(container) {
   container.innerHTML = `
     <div class="ai-capabilities-box" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
-      <div class="capability-title">🤖 AI Chart Intelligence</div>
+      <div class="capability-title">🚀 Gemini 2.5 Flash Intelligence</div>
       <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
-        Upload any candlestick chart to get deep insights using Google Gemini AI.
+        Upload any candlestick chart to get deep insights using Google's latest Gemini 2.5 AI.
       </p>
       <ul class="capability-list">
         <li><span>📈</span> Pattern Recognition</li>
