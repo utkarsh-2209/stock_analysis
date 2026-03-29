@@ -160,7 +160,7 @@ router.post('/predict-chart', async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: { temperature: 0.1 }
     });
 
@@ -235,7 +235,7 @@ router.post('/test-key', async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent('Reply with exactly: OK');
     const text = result.response.text();
 
